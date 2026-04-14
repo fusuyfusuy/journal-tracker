@@ -1,0 +1,212 @@
+{
+  "phase0": {
+    "status": "complete",
+    "timestamp": "2026-04-14T20:47:28Z"
+  },
+  "phase1": {
+    "status": "complete",
+    "timestamp": "2026-04-14T23:50:00Z",
+    "files": {
+      "config": ".mcd/config.json",
+      "manifest": ".mcd/manifest.json",
+      "statechart_mmd": ".mcd/statechart.mmd",
+      "types": [
+        "src/types/entities.ts",
+        "src/types/events.ts",
+        "src/types/index.ts"
+      ]
+    }
+  },
+  "phase2": {
+    "status": "complete",
+    "timestamp": "2026-04-14T20:57:31Z",
+    "files": {
+      "src/config.ts": {
+        "status": "verified",
+        "hash": "3b8742834d9bb91e4b46cab847dc5e93ef8e9ddb636d4b10d1c230f79e46c96e",
+        "fillAttempts": 1,
+        "verifyAttempts": 1,
+        "filledAt": "2026-04-14T21:05:30Z"
+      },
+      "src/log.ts": {
+        "status": "verified",
+        "hash": "53feab9b30062f72de420c9c25d347b7c29d7dd559d94bb045cb2aa0ea8b84c5",
+        "fillAttempts": 1,
+        "verifyAttempts": 1,
+        "filledAt": "2026-04-14T21:05:34Z"
+      },
+      "src/db.ts": {
+        "status": "verified",
+        "hash": "0c11e22d908df76133d0434987422fcf4089bf173eaa4508079106a15af1c7ad",
+        "fillAttempts": 1,
+        "verifyAttempts": 1,
+        "filledAt": "2026-04-14T21:05:54Z"
+      },
+      "src/fetchers/index.ts": {
+        "status": "verified",
+        "hash": "c00759f18371536adbd299dde3d7450c33d46a2f0a93090c5b2b9e204eab4418",
+        "fillAttempts": 1,
+        "verifyAttempts": 1,
+        "filledAt": "2026-04-14T21:12:13Z"
+      },
+      "src/fetchers/rss.ts": {
+        "status": "verified",
+        "hash": "96675b55a1ca2f7745ac8a4c94fecb02938332d367dd0f952a52c19a3249f57c",
+        "fillAttempts": 1,
+        "verifyAttempts": 1,
+        "filledAt": "2026-04-14T21:16:04Z"
+      },
+      "src/fetchers/arxiv.ts": {
+        "status": "verified",
+        "hash": "bdafb300788de9d181e21cc486573ecddd1791d8744dbd13bcd809b7e10fc67e",
+        "fillAttempts": 1,
+        "verifyAttempts": 1,
+        "filledAt": "2026-04-14T21:17:45Z"
+      },
+      "src/fetchers/crossref.ts": {
+        "status": "verified",
+        "hash": "f5ae35abce442650cab90f01cd53e47b50b72bb0a628231a8032a5e70c2ddf11",
+        "fillAttempts": 1,
+        "verifyAttempts": 1,
+        "filledAt": "2026-04-14T21:17:57Z"
+      },
+      "src/fetchers/pubmed.ts": {
+        "status": "verified",
+        "hash": "2d0f675ba809de92cd33c3199f52448f2a210337b8bbfd2ec9adbc316f6d1844",
+        "fillAttempts": 1,
+        "verifyAttempts": 1,
+        "filledAt": "2026-04-14T21:16:10Z"
+      },
+      "src/fetchers/html.ts": {
+        "status": "verified",
+        "hash": "a2d0edac5397b90e548f20bd505811790e433f5e719bcb12af4122f16dff6edf",
+        "fillAttempts": 1,
+        "verifyAttempts": 1,
+        "filledAt": "2026-04-14T21:16:14Z"
+      },
+      "src/notifiers/index.ts": {
+        "status": "verified",
+        "hash": "f60900e58328c78e1741f4c70f7704991f3a157f2a6459507fc4c5eb170c38be",
+        "fillAttempts": 1,
+        "verifyAttempts": 1,
+        "filledAt": "2026-04-14T21:07:14Z"
+      },
+      "src/notifiers/email.ts": {
+        "status": "verified",
+        "hash": "004f94aae9823406f5d9dfd0ecd52f64f749ed092d73382b072eebef92140fea",
+        "fillAttempts": 1,
+        "verifyAttempts": 1,
+        "filledAt": "2026-04-14T21:16:25Z"
+      },
+      "src/notifiers/webhook.ts": {
+        "status": "verified",
+        "hash": "5079c9b25b96dbd5e04f9f1a38cb12c98c4399d406e98d4acbe522e33077e4b7",
+        "fillAttempts": 1,
+        "verifyAttempts": 1,
+        "filledAt": "2026-04-14T21:16:30Z"
+      },
+      "src/cycle.ts": {
+        "status": "verified",
+        "hash": "1e37540cb31ea552b9ce400ee86396b9a11375cc790b5775f49d8741ffbd1ce4",
+        "fillAttempts": 1,
+        "verifyAttempts": 1,
+        "filledAt": "2026-04-14T21:07:28Z"
+      },
+      "src/scheduler.ts": {
+        "status": "verified",
+        "hash": "5de6e63656e135982672400fade87387ffd84b9971845e18a284dec289c7b7fc",
+        "fillAttempts": 1,
+        "verifyAttempts": 1,
+        "filledAt": "2026-04-14T21:07:20Z"
+      },
+      "src/index.ts": {
+        "status": "verified",
+        "hash": "d331ad41b9b074390ce6d80addabd302f30cb1f29481c9508769439fc213d1d7",
+        "fillAttempts": 1,
+        "verifyAttempts": 1,
+        "filledAt": "2026-04-14T21:07:31Z"
+      },
+      "src/seed.ts": {
+        "status": "verified",
+        "hash": "f46dc7c3e2bad1cd8f1be982b6f18d56619c8d800f964e8bf7e595fe147f681e",
+        "fillAttempts": 1,
+        "verifyAttempts": 1,
+        "filledAt": "2026-04-14T21:06:05Z"
+      }
+    }
+  },
+  "phase3": {
+    "status": "complete",
+    "timestamp": "2026-04-15T00:00:00Z",
+    "files": {
+      "tests/config.test.ts": {
+        "status": "test"
+      },
+      "tests/log.test.ts": {
+        "status": "test"
+      },
+      "tests/db.test.ts": {
+        "status": "test"
+      },
+      "tests/cycle.test.ts": {
+        "status": "test"
+      },
+      "tests/scheduler.test.ts": {
+        "status": "test"
+      },
+      "tests/index.test.ts": {
+        "status": "test"
+      },
+      "tests/seed.test.ts": {
+        "status": "test"
+      },
+      "tests/fetchers/index.test.ts": {
+        "status": "test"
+      },
+      "tests/fetchers/rss.test.ts": {
+        "status": "test"
+      },
+      "tests/fetchers/arxiv.test.ts": {
+        "status": "test"
+      },
+      "tests/fetchers/crossref.test.ts": {
+        "status": "test"
+      },
+      "tests/fetchers/pubmed.test.ts": {
+        "status": "test"
+      },
+      "tests/fetchers/html.test.ts": {
+        "status": "test"
+      },
+      "tests/notifiers/index.test.ts": {
+        "status": "test"
+      },
+      "tests/notifiers/email.test.ts": {
+        "status": "test"
+      },
+      "tests/notifiers/webhook.test.ts": {
+        "status": "test"
+      }
+    },
+    "audit": {
+      "type_issues_resolved": 0,
+      "pseudocode_issues_resolved": 0,
+      "statechart_coverage": "19/19",
+      "gaps_filled": [],
+      "type_files_modified": [],
+      "oracle_tests_generated": 16,
+      "happy_path_only_patches": 0
+    }
+  },
+  "phase4": {
+    "status": "complete",
+    "timestamp": "2026-04-14T21:18:31Z"
+  },
+  "phase5": {
+    "status": "complete",
+    "timestamp": "2026-04-14T21:24:53Z",
+    "verified": 16,
+    "skipped": 0,
+    "failed": 0
+  }
+}

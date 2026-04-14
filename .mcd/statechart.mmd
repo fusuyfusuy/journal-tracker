@@ -1,0 +1,52 @@
+---
+title: Academic Journal Tracker — Per-Check-Cycle State Machine
+---
+stateDiagram-v2
+    [*] --> idle
+
+    idle --> loading_journals: CYCLE_TICK / loadActiveJournals
+    idle --> [*]: SHUTDOWN
+
+    loading_journals --> cycle_complete: NO_JOURNALS / logCycleSummary
+    loading_journals --> fetching_journal: JOURNALS_LOADED / selectNextJournal
+    loading_journals --> error_db: DB_ERROR / handleDbError
+
+    state fetching_journal {
+        [*] --> fetch_in_flight
+        fetch_in_flight --> fetch_in_flight: (awaiting fetcher)
+    }
+
+    fetching_journal --> processing_articles: FETCH_OK / normalizeArticles
+    fetching_journal --> error_fetch: FETCH_ERROR / handleFetchError
+    fetching_journal --> error_fetch: after 30s / handleTimeout
+
+    state processing_articles {
+        [*] --> dedupe_article
+        dedupe_article --> persist_article: NEW_ARTICLE / persistArticle
+        dedupe_article --> dedupe_article: DUPLICATE / skipArticle
+        persist_article --> dispatch_for_article: PERSIST_OK / loadSubscribers
+        persist_article --> error_db_article: PERSIST_ERROR / handleDbError
+        error_db_article --> dedupe_article: CONTINUE / logAndContinue
+        dispatch_for_article --> dedupe_article: DISPATCH_DONE / nextArticle
+    }
+
+    processing_articles --> next_journal: ARTICLES_DONE / logJournalResult
+    processing_articles --> error_db: DB_FATAL / handleDbError
+
+    state dispatching_notifications {
+        [*] --> pick_subscriber
+        pick_subscriber --> deliver_notification: HAS_SUBSCRIBER / dispatchNotification
+        pick_subscriber --> [*]: NO_MORE_SUBSCRIBERS
+        deliver_notification --> pick_subscriber: DELIVER_OK / logDeliverOk
+        deliver_notification --> error_notify: DELIVER_ERROR / handleNotifyError
+        deliver_notification --> error_notify: after 15s / handleTimeout
+        error_notify --> pick_subscriber: CONTINUE / logAndContinue
+    }
+
+    error_fetch --> next_journal: CONTINUE / logAndContinue
+    error_db --> cycle_complete: ABORT_CYCLE / logCycleSummary
+
+    next_journal --> fetching_journal: MORE_JOURNALS / selectNextJournal
+    next_journal --> cycle_complete: NO_MORE_JOURNALS / logCycleSummary
+
+    cycle_complete --> idle: RESET / resetCycleState

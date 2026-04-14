@@ -1,0 +1,20 @@
+{
+  "name": "academic-journal-tracker",
+  "version": "0.1.0",
+  "description": "Bun service that periodically polls academic journal sources and dispatches notifications",
+  "type": "module",
+  "scripts": {
+    "start": "bun src/index.ts",
+    "once": "bun src/index.ts --once",
+    "seed": "bun src/seed.ts",
+    "typecheck": "bunx tsc --noEmit"
+  },
+  "dependencies": {
+    "zod": "latest",
+    "fast-xml-parser": "latest"
+  },
+  "devDependencies": {
+    "typescript": "latest",
+    "@types/bun": "latest"
+  }
+}

@@ -1,0 +1,345 @@
+{
+  "spec_version": "0.2.0",
+  "feature": "academic-journal-tracker",
+  "generated_at": "2026-04-14T23:50:00Z",
+  "mode": "greenfield",
+  "language": "typescript",
+  "runtime": "bun",
+  "summary": "Bun+TypeScript service that periodically polls academic journal sources (RSS, arXiv, Crossref, PubMed, HTML), deduplicates articles in SQLite (bun:sqlite), and dispatches notifications over email (Resend) and generic HTTP webhook channels.",
+
+  "dependencies": {
+    "runtime": {
+      "zod": "latest",
+      "fast-xml-parser": "latest"
+    },
+    "dev": {
+      "typescript": "latest",
+      "@types/bun": "latest"
+    },
+    "notes": [
+      "bun:sqlite is a Bun built-in — no SQLite driver dependency.",
+      "Resend is called via raw fetch to the REST API; no @resend/node SDK dependency.",
+      "bun test is the Bun built-in test runner; no vitest/jest needed."
+    ]
+  },
+
+  "entities": [
+    {
+      "name": "Journal",
+      "description": "A polled upstream journal source. Persistent row in SQLite.",
+      "fields": [
+        { "name": "id", "type": "number", "notes": "INTEGER PRIMARY KEY AUTOINCREMENT" },
+        { "name": "name", "type": "string", "notes": "Human-readable name" },
+        { "name": "fetcher_type", "type": "enum('rss'|'arxiv'|'crossref'|'pubmed'|'html')" },
+        { "name": "feed_url", "type": "string", "notes": "Non-empty URL" },
+        { "name": "active", "type": "boolean" },
+        { "name": "created_at", "type": "string", "notes": "ISO-8601 UTC" }
+      ],
+      "constraints": [
+        "feed_url MUST be non-empty",
+        "fetcher_type MUST be one of the enum values"
+      ]
+    },
+    {
+      "name": "Article",
+      "description": "A deduplicated article row. Persisted BEFORE any notification is dispatched.",
+      "fields": [
+        { "name": "id", "type": "number" },
+        { "name": "journal_id", "type": "number", "notes": "FK -> journals.id" },
+        { "name": "title", "type": "string" },
+        { "name": "url", "type": "string" },
+        { "name": "doi", "type": "string | null" },
+        { "name": "published_at", "type": "string", "notes": "ISO-8601 UTC; falls back to fetch time" },
+        { "name": "dedupe_key", "type": "string", "notes": "UNIQUE; DOI if present, else canonical URL" },
+        { "name": "created_at", "type": "string" }
+      ],
+      "constraints": [
+        "dedupe_key UNIQUE at SQL layer",
+        "published_at is ISO-8601 UTC string"
+      ]
+    },
+    {
+      "name": "Subscriber",
+      "description": "External notification recipient.",
+      "fields": [
+        { "name": "id", "type": "number" },
+        { "name": "channel_type", "type": "enum('email'|'webhook')" },
+        { "name": "destination", "type": "string", "notes": "email addr OR https?:// URL" },
+        { "name": "active", "type": "boolean" },
+        { "name": "created_at", "type": "string" }
+      ],
+      "constraints": [
+        "destination must syntactically validate per channel_type"
+      ]
+    },
+    {
+      "name": "FetchResult",
+      "description": "In-memory return value from a Fetcher adapter.",
+      "fields": [
+        { "name": "journal_id", "type": "number" },
+        { "name": "articles", "type": "NormalizedArticle[]" },
+        { "name": "fetched_at", "type": "string" },
+        { "name": "error", "type": "FetchError | null" }
+      ]
+    },
+    {
+      "name": "NormalizedArticle",
+      "description": "Pre-persistence article shape returned by a Fetcher.",
+      "fields": [
+        { "name": "title", "type": "string" },
+        { "name": "url", "type": "string" },
+        { "name": "doi", "type": "string | null" },
+        { "name": "published_at", "type": "string" }
+      ]
+    },
+    {
+      "name": "NotificationEvent",
+      "description": "In-memory structured log event for a dispatch attempt.",
+      "fields": [
+        { "name": "article_id", "type": "number" },
+        { "name": "subscriber_id", "type": "number" },
+        { "name": "channel", "type": "enum('email'|'webhook')" },
+        { "name": "status", "type": "enum('ok'|'error')" },
+        { "name": "error_message", "type": "string | null" },
+        { "name": "timestamp", "type": "string" }
+      ]
+    },
+    {
+      "name": "CycleSummary",
+      "description": "Per-cycle aggregated log event.",
+      "fields": [
+        { "name": "started_at", "type": "string" },
+        { "name": "finished_at", "type": "string" },
+        { "name": "journals_processed", "type": "number" },
+        { "name": "articles_new", "type": "number" },
+        { "name": "errors", "type": "number" }
+      ]
+    }
+  ],
+
+  "features": [
+    {
+      "name": "scheduler",
+      "description": "Interval-based single-flight loop that ticks every CHECK_INTERVAL_MS (default 6h, min 1h). Skips overrunning ticks. Handles SIGINT/SIGTERM for graceful shutdown.",
+      "flows": ["Flow 1", "Flow 3", "Flow 4"]
+    },
+    {
+      "name": "fetching",
+      "description": "Pluggable Fetcher interface with implementations for rss (full), arxiv (stub), and reserved placeholders for crossref/pubmed/html. All set descriptive User-Agent.",
+      "flows": ["Flow 1"]
+    },
+    {
+      "name": "storage_dedup",
+      "description": "SQLite (bun:sqlite) persistence with schema created on startup via CREATE TABLE IF NOT EXISTS. UNIQUE(dedupe_key) enforces idempotency.",
+      "flows": ["Flow 1"]
+    },
+    {
+      "name": "notification_dispatch",
+      "description": "Pluggable Notifier interface with email (Resend REST) and webhook (generic HTTP POST) implementations. Per-subscriber try/catch with no retry in v1.",
+      "flows": ["Flow 2"]
+    },
+    {
+      "name": "cli",
+      "description": "Entry point honoring --once flag (one-shot) vs bare invocation (long-running scheduler). Validates env at startup.",
+      "flows": ["Flow 3", "Flow 4"]
+    },
+    {
+      "name": "seeding",
+      "description": "Out-of-band seed script (or raw SQL) to insert rows into journals/subscribers; changes picked up next cycle without restart.",
+      "flows": ["Flow 5"]
+    }
+  ],
+
+  "flows": [
+    {
+      "id": "flow-1",
+      "name": "Scheduled Check Cycle",
+      "trigger": "Scheduler tick OR CLI one-shot",
+      "steps": [
+        "loadActiveJournals()",
+        "for each Journal: resolveFetcher -> fetchJournalArticles -> normalizeArticles",
+        "for each NormalizedArticle: dedupeArticle -> persistArticle (if new) -> dispatch Flow 2",
+        "logJournalResult per journal",
+        "logCycleSummary"
+      ]
+    },
+    {
+      "id": "flow-2",
+      "name": "Notification Dispatch",
+      "trigger": "New article persisted in Flow 1",
+      "steps": [
+        "loadActiveSubscribers()",
+        "for each Subscriber: resolveNotifier -> renderPayload -> dispatchNotification -> logDeliverOk|handleNotifyError"
+      ]
+    },
+    { "id": "flow-3", "name": "One-Shot CLI Run", "trigger": "--once flag", "steps": ["init -> run Flow 1 once -> exit"] },
+    { "id": "flow-4", "name": "Long-Running Scheduler Mode", "trigger": "bare invocation", "steps": ["init -> Flow 1 immediately -> interval loop -> SIGINT/SIGTERM graceful exit"] },
+    { "id": "flow-5", "name": "Data Seeding", "trigger": "Operator seed script / SQL", "steps": ["insert rows -> next cycle picks them up"] }
+  ],
+
+  "statechart": {
+    "id": "check_cycle",
+    "initial": "idle",
+    "context": {
+      "journals": "Journal[]",
+      "current_journal_index": "number",
+      "current_articles": "NormalizedArticle[]",
+      "current_article_index": "number",
+      "subscribers": "Subscriber[]",
+      "current_subscriber_index": "number",
+      "summary": "CycleSummary"
+    },
+    "states": {
+      "idle": {
+        "on": {
+          "CYCLE_TICK": { "target": "loading_journals", "action": "loadActiveJournals" },
+          "SHUTDOWN": { "target": "terminated" }
+        }
+      },
+      "loading_journals": {
+        "on": {
+          "JOURNALS_LOADED": { "target": "fetching_journal", "action": "selectNextJournal" },
+          "NO_JOURNALS": { "target": "cycle_complete", "action": "logCycleSummary" },
+          "DB_ERROR": { "target": "error_db", "action": "handleDbError" }
+        }
+      },
+      "fetching_journal": {
+        "after": { "30000": { "target": "error_fetch", "action": "handleTimeout" } },
+        "on": {
+          "FETCH_OK": { "target": "processing_articles", "action": "normalizeArticles" },
+          "FETCH_ERROR": { "target": "error_fetch", "action": "handleFetchError" }
+        }
+      },
+      "processing_articles": {
+        "initial": "dedupe_article",
+        "states": {
+          "dedupe_article": {
+            "on": {
+              "NEW_ARTICLE": { "target": "persist_article", "action": "persistArticle" },
+              "DUPLICATE": { "target": "dedupe_article", "action": "skipArticle" },
+              "ARTICLES_DONE": { "target": "#check_cycle.next_journal", "action": "logJournalResult" }
+            }
+          },
+          "persist_article": {
+            "on": {
+              "PERSIST_OK": { "target": "dispatch_for_article", "action": "loadSubscribers" },
+              "PERSIST_ERROR": { "target": "error_db_article", "action": "handleDbError" }
+            }
+          },
+          "dispatch_for_article": {
+            "initial": "pick_subscriber",
+            "states": {
+              "pick_subscriber": {
+                "on": {
+                  "HAS_SUBSCRIBER": { "target": "deliver_notification", "action": "dispatchNotification" },
+                  "NO_MORE_SUBSCRIBERS": { "target": "#check_cycle.processing_articles.dedupe_article", "action": "nextArticle" }
+                }
+              },
+              "deliver_notification": {
+                "after": { "15000": { "target": "error_notify", "action": "handleTimeout" } },
+                "on": {
+                  "DELIVER_OK": { "target": "pick_subscriber", "action": "logDeliverOk" },
+                  "DELIVER_ERROR": { "target": "error_notify", "action": "handleNotifyError" }
+                }
+              },
+              "error_notify": {
+                "on": { "CONTINUE": { "target": "pick_subscriber", "action": "logAndContinue" } }
+              }
+            }
+          },
+          "error_db_article": {
+            "on": { "CONTINUE": { "target": "dedupe_article", "action": "logAndContinue" } }
+          }
+        }
+      },
+      "error_fetch": {
+        "on": { "CONTINUE": { "target": "next_journal", "action": "logAndContinue" } }
+      },
+      "error_db": {
+        "on": { "ABORT_CYCLE": { "target": "cycle_complete", "action": "logCycleSummary" } }
+      },
+      "next_journal": {
+        "on": {
+          "MORE_JOURNALS": { "target": "fetching_journal", "action": "selectNextJournal" },
+          "NO_MORE_JOURNALS": { "target": "cycle_complete", "action": "logCycleSummary" }
+        }
+      },
+      "cycle_complete": {
+        "on": { "RESET": { "target": "idle", "action": "resetCycleState" } }
+      },
+      "terminated": { "type": "final" }
+    },
+    "transitions": [
+      { "from": "idle", "event": "CYCLE_TICK", "to": "loading_journals", "action": "loadActiveJournals", "input": "void", "output": "Journal[]" },
+      { "from": "loading_journals", "event": "JOURNALS_LOADED", "to": "fetching_journal", "action": "selectNextJournal", "input": "Journal[]", "output": "Journal" },
+      { "from": "loading_journals", "event": "NO_JOURNALS", "to": "cycle_complete", "action": "logCycleSummary", "input": "CycleSummary", "output": "void" },
+      { "from": "loading_journals", "event": "DB_ERROR", "to": "error_db", "action": "handleDbError", "input": "Error", "output": "void" },
+      { "from": "fetching_journal", "event": "FETCH_OK", "to": "processing_articles", "action": "normalizeArticles", "input": "FetchResult", "output": "NormalizedArticle[]" },
+      { "from": "fetching_journal", "event": "FETCH_ERROR", "to": "error_fetch", "action": "handleFetchError", "input": "Error", "output": "void" },
+      { "from": "fetching_journal", "event": "TIMEOUT", "to": "error_fetch", "action": "handleTimeout", "input": "void", "output": "void" },
+      { "from": "processing_articles.dedupe_article", "event": "NEW_ARTICLE", "to": "processing_articles.persist_article", "action": "persistArticle", "input": "NormalizedArticle", "output": "Article" },
+      { "from": "processing_articles.dedupe_article", "event": "DUPLICATE", "to": "processing_articles.dedupe_article", "action": "skipArticle", "input": "NormalizedArticle", "output": "void" },
+      { "from": "processing_articles.dedupe_article", "event": "CHECK", "to": "processing_articles.dedupe_article", "action": "dedupeArticle", "input": "NormalizedArticle", "output": "boolean" },
+      { "from": "processing_articles.persist_article", "event": "PERSIST_OK", "to": "processing_articles.dispatch_for_article", "action": "loadSubscribers", "input": "void", "output": "Subscriber[]" },
+      { "from": "processing_articles.persist_article", "event": "PERSIST_ERROR", "to": "processing_articles.error_db_article", "action": "handleDbError", "input": "Error", "output": "void" },
+      { "from": "processing_articles.dispatch_for_article.pick_subscriber", "event": "HAS_SUBSCRIBER", "to": "processing_articles.dispatch_for_article.deliver_notification", "action": "dispatchNotification", "input": "{ article: Article, subscriber: Subscriber }", "output": "NotificationEvent" },
+      { "from": "processing_articles.dispatch_for_article.deliver_notification", "event": "DELIVER_OK", "to": "processing_articles.dispatch_for_article.pick_subscriber", "action": "logDeliverOk", "input": "NotificationEvent", "output": "void" },
+      { "from": "processing_articles.dispatch_for_article.deliver_notification", "event": "DELIVER_ERROR", "to": "processing_articles.dispatch_for_article.error_notify", "action": "handleNotifyError", "input": "Error", "output": "void" },
+      { "from": "processing_articles.dispatch_for_article.deliver_notification", "event": "TIMEOUT", "to": "processing_articles.dispatch_for_article.error_notify", "action": "handleTimeout", "input": "void", "output": "void" },
+      { "from": "processing_articles.dispatch_for_article.error_notify", "event": "CONTINUE", "to": "processing_articles.dispatch_for_article.pick_subscriber", "action": "logAndContinue", "input": "void", "output": "void" },
+      { "from": "processing_articles.error_db_article", "event": "CONTINUE", "to": "processing_articles.dedupe_article", "action": "logAndContinue", "input": "void", "output": "void" },
+      { "from": "processing_articles", "event": "ARTICLES_DONE", "to": "next_journal", "action": "logJournalResult", "input": "CycleSummary", "output": "void" },
+      { "from": "error_fetch", "event": "CONTINUE", "to": "next_journal", "action": "logAndContinue", "input": "void", "output": "void" },
+      { "from": "error_db", "event": "ABORT_CYCLE", "to": "cycle_complete", "action": "logCycleSummary", "input": "CycleSummary", "output": "void" },
+      { "from": "next_journal", "event": "MORE_JOURNALS", "to": "fetching_journal", "action": "selectNextJournal", "input": "Journal[]", "output": "Journal" },
+      { "from": "next_journal", "event": "NO_MORE_JOURNALS", "to": "cycle_complete", "action": "logCycleSummary", "input": "CycleSummary", "output": "void" },
+      { "from": "cycle_complete", "event": "RESET", "to": "idle", "action": "resetCycleState", "input": "void", "output": "void" }
+    ],
+    "actions": [
+      "loadActiveJournals",
+      "selectNextJournal",
+      "fetchJournalArticles",
+      "normalizeArticles",
+      "dedupeArticle",
+      "persistArticle",
+      "skipArticle",
+      "nextArticle",
+      "loadSubscribers",
+      "dispatchNotification",
+      "logDeliverOk",
+      "logJournalResult",
+      "logCycleSummary",
+      "handleFetchError",
+      "handleNotifyError",
+      "handleDbError",
+      "handleTimeout",
+      "logAndContinue",
+      "resetCycleState"
+    ]
+  },
+
+  "modules": [
+    { "path": "src/index.ts", "role": "CLI entry (Flow 3 & 4)" },
+    { "path": "src/scheduler.ts", "role": "Single-flight interval loop; owns state machine" },
+    { "path": "src/cycle.ts", "role": "Runs one check cycle (executes transitions)" },
+    { "path": "src/db.ts", "role": "bun:sqlite init + schema + CRUD" },
+    { "path": "src/fetchers/index.ts", "role": "Fetcher interface + resolver" },
+    { "path": "src/fetchers/rss.ts", "role": "RSS fetcher (full impl)" },
+    { "path": "src/fetchers/arxiv.ts", "role": "arXiv fetcher (stub)" },
+    { "path": "src/fetchers/crossref.ts", "role": "Crossref fetcher (stub/reserved)" },
+    { "path": "src/fetchers/pubmed.ts", "role": "PubMed fetcher (stub/reserved)" },
+    { "path": "src/fetchers/html.ts", "role": "HTML fetcher (stub/reserved)" },
+    { "path": "src/notifiers/index.ts", "role": "Notifier interface + resolver" },
+    { "path": "src/notifiers/email.ts", "role": "Resend REST email notifier" },
+    { "path": "src/notifiers/webhook.ts", "role": "Generic HTTP webhook notifier" },
+    { "path": "src/config.ts", "role": "Env var parsing & validation (CHECK_INTERVAL_MS, RESEND_API_KEY, DB path)" },
+    { "path": "src/log.ts", "role": "Structured JSON stdout logger" },
+    { "path": "src/types/entities.ts", "role": "Journal, Article, Subscriber Zod schemas" },
+    { "path": "src/types/events.ts", "role": "FetchResult, NotificationEvent, CycleSummary Zod schemas" },
+    { "path": "src/types/index.ts", "role": "Re-exports" }
+  ],
+
+  "open_questions": [
+    "None blocking — all ambiguities resolved per requirements.md 'Assumptions' section."
+  ]
+}
