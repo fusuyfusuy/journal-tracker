@@ -1,0 +1,31 @@
+{
+  "language": "typescript",
+  "profile": {
+    "file_ext": ".ts",
+    "test_ext": ".test.ts",
+    "src_dir": "src",
+    "test_dir": "tests",
+    "types_dir": "src/types",
+    "stub_body": "throw new Error('not implemented')",
+    "comment_prefix": "//",
+    "validation_lib": "zod",
+    "test_framework": "bun:test",
+    "runtime": "bun",
+    "package_manager": "bun",
+    "commands": {
+      "lint": "bunx tsc --noEmit",
+      "typecheck": "bunx tsc --noEmit",
+      "test": "bun test {test_file}",
+      "test_command": "bun test",
+      "lint_command": "bunx tsc --noEmit",
+      "typecheck_command": "bunx tsc --noEmit"
+    }
+  },
+  "notes": [
+    "Greenfield Bun+TypeScript project; no package.json existed at detect time.",
+    "bun:sqlite is a Bun built-in — not listed as a dependency.",
+    "Resend is used via raw fetch to REST API, no SDK dependency.",
+    "test_framework set to bun:test (Bun built-in); no vitest.",
+    "Lint/typecheck both use tsc --noEmit to keep verification lean (no eslint in v1)."
+  ]
+}
