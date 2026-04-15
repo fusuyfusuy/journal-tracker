@@ -1,0 +1,52 @@
+services:
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  worker:
+    build:
+      context: .
+      args:
+        APP: worker
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+    env_file: .env
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      DB_PATH: /app/data/journal-tracker.db
+    volumes:
+      - journal-data:/app/data
+
+  api:
+    build:
+      context: .
+      args:
+        APP: api
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+    env_file: .env
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      DB_PATH: /app/data/journal-tracker.db
+      API_PORT: 3000
+    ports:
+      - "3000:3000"
+    volumes:
+      - journal-data:/app/data
+
+volumes:
+  redis-data:
+  journal-data:
