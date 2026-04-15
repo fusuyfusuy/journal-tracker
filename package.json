@@ -22,6 +22,7 @@
     "@nestjs/config": "^3.3.0",
     "@nestjs/core": "^10.4.15",
     "@nestjs/platform-express": "^10.4.15",
+    "@nestjs/terminus": "^11.1.1",
     "@nestjs/typeorm": "^10.0.2",
     "better-sqlite3": "^11.7.0",
     "bullmq": "^5.34.0",
@@ -56,7 +57,9 @@
     "roots": ["<rootDir>/apps", "<rootDir>/libs"],
     "testRegex": ".*\\.(spec|e2e-spec)\\.ts$",
     "transform": {
-      "^.+\\.(t|j)s$": ["ts-jest", { "tsconfig": "<rootDir>/tsconfig.json" }]
+      "^.+\\.(t|j)s$": ["ts-jest", {
+        "tsconfig": "<rootDir>/tsconfig.json"
+      }]
     },
     "testEnvironment": "node",
     "moduleNameMapper": {

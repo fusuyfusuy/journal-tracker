@@ -21,6 +21,7 @@ apps/
       journals/         CRUD
       subscribers/      CRUD (destination validated per channel)
       cycles/           Trigger + status endpoints (no DB entity)
+      health/           Liveness + readiness endpoints (TerminusModule)
       app.module.ts     HTTP bootstrap
       main.ts           NestFactory.create + listen
 libs/
@@ -106,7 +107,18 @@ Tracked as GitHub issues:
 - [#2](https://github.com/fusuyfusuy/journal-tracker/issues/2) **Auth on the API**: `/journals`, `/subscribers`, `/cycles` are open. Put an auth guard in before exposing publicly.
 - [#3](https://github.com/fusuyfusuy/journal-tracker/issues/3) **Retry queue for failed notifications**: BullMQ supports per-job retries; not configured yet.
 - [#4](https://github.com/fusuyfusuy/journal-tracker/issues/4) **Containerization**: Dockerfile + docker-compose for worker/api/redis.
-- [#5](https://github.com/fusuyfusuy/journal-tracker/issues/5) **Observability**: metrics, tracing, `/health` / `/ready` endpoints.
+- [#5](https://github.com/fusuyfusuy/journal-tracker/issues/5) **Observability**: Prometheus metrics and OpenTelemetry tracing remain open. `/health` and `/ready` endpoints are now implemented (partial #5).
+
+## Health endpoints
+
+`GET /health` — liveness. Always returns `{ status: 'ok', uptime: <seconds> }` without performing any I/O. Safe to use as a Kubernetes liveness probe.
+
+`GET /ready` — readiness. Composed via `@nestjs/terminus` `HealthCheckService`:
+
+- **`db`** — `TypeOrmHealthIndicator.pingCheck('db')` executes `SELECT 1` against the SQLite DataSource.
+- **`redis`** — `RedisHealthIndicator` opens a temporary `ioredis` connection, calls `PING`, and closes it.
+
+Returns `200 { status: 'ok', ... }` when both checks pass; `503` with the failing indicator details otherwise. See [`docs/OBSERVABILITY.md`](./OBSERVABILITY.md) for response shapes.
 
 Still out of scope per original [`.mcd/requirements.md`](../.mcd/requirements.md):
 

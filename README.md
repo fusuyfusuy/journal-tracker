@@ -72,6 +72,8 @@ Minimum:
 | POST | `/cycles` | — | enqueue a one-off cycle job |
 | GET | `/cycles` | — | queue counts |
 | GET | `/cycles/:id` | — | job state + return value |
+| GET | `/health` | — | liveness — always 200 `{ status, uptime }` |
+| GET | `/ready` | — | readiness — 200 ok / 503 when DB or Redis is down |
 
 ## Testing
 
