@@ -3,6 +3,7 @@ import { registerAs } from '@nestjs/config';
 export interface AppConfig {
   checkIntervalMs: number;
   dbPath: string;
+  dbSynchronize: boolean;
   userAgent: string;
   redis: { host: string; port: number; password?: string };
   resend: { apiKey: string; from: string };
@@ -31,6 +32,7 @@ export const appConfig = registerAs('app', (): AppConfig => {
   return {
     checkIntervalMs,
     dbPath: process.env.DB_PATH ?? './data/journal-tracker.db',
+    dbSynchronize: process.env.DB_SYNCHRONIZE === 'true',
     userAgent: 'academic-journal-tracker/2.0',
     redis: {
       host: process.env.REDIS_HOST ?? 'localhost',

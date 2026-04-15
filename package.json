@@ -14,7 +14,10 @@
     "typecheck": "bunx tsc -p tsconfig.json --noEmit",
     "test": "bunx jest",
     "test:watch": "bunx jest --watch",
-    "lint": "bunx eslint \"{apps,libs}/**/*.ts\" --fix"
+    "lint": "bunx eslint \"{apps,libs}/**/*.ts\" --fix",
+    "migration:generate": "bunx typeorm migration:generate -d libs/database/src/data-source.ts",
+    "migration:run": "bunx typeorm migration:run -d libs/database/src/data-source.ts",
+    "migration:revert": "bunx typeorm migration:revert -d libs/database/src/data-source.ts"
   },
   "dependencies": {
     "@nestjs/bullmq": "^10.2.3",
