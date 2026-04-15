@@ -73,9 +73,40 @@ Minimum:
 | GET | `/cycles` | — | queue counts |
 | GET | `/cycles/:id` | — | job state + return value |
 
+## Testing
+
+44 tests across 11 suites — unit, integration (in-memory TypeORM), and e2e (supertest).
+
+```bash
+bun run test              # once
+bun run test:watch        # watch mode
+```
+
+Layout:
+- `apps/**/src/**/*.spec.ts` — unit tests co-located with the code
+- `apps/worker/src/cycle/cycle.service.spec.ts` — integration against in-memory `better-sqlite3` with mocked fetchers/notifiers
+- `apps/api/test/api.e2e-spec.ts` — HTTP-level e2e with `supertest`
+
+Cycle tests exercise the statechart guarantees that came from the original MCD-Flow spec: per-journal fault isolation, DOI-preferred deduplication, notifier-exception continuation.
+
+## Roadmap before production
+
+Tracked as issues:
+- [#1](https://github.com/fusuyfusuy/journal-tracker/issues/1) — TypeORM migrations (replace `synchronize: true`)
+- [#2](https://github.com/fusuyfusuy/journal-tracker/issues/2) — API authentication + rate limiting
+- [#3](https://github.com/fusuyfusuy/journal-tracker/issues/3) — BullMQ retry + per-notification queue
+- [#4](https://github.com/fusuyfusuy/journal-tracker/issues/4) — Dockerfile + docker-compose
+- [#5](https://github.com/fusuyfusuy/journal-tracker/issues/5) — Observability (metrics, tracing, health)
+
+## Project history
+
+- **v0.2.0** (current) — NestJS monorepo, TypeORM + better-sqlite3, BullMQ scheduler.
+- **v0.1.0** — original single-package Bun + `bun:sqlite` + interval-loop scheduler. Archived at tag [`v0.1.0-bun`](https://github.com/fusuyfusuy/journal-tracker/tree/v0.1.0-bun). Generated via MCD-Flow.
+
 ## Further reading
 
 - [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) — modules, data flow, BullMQ integration
 - [`docs/CONFIG.md`](./docs/CONFIG.md) — env vars
 - [`docs/EXTENDING.md`](./docs/EXTENDING.md) — add a new fetcher/notifier/app
-- [`.mcd/`](./.mcd/) — original MCD-Flow spec (still describes cycle semantics faithfully)
+- [`docs/TESTING.md`](./docs/TESTING.md) — test layout, patterns, how to add a new test
+- [`.mcd/`](./.mcd/) — original MCD-Flow spec. Cycle semantics still match; file paths reference the v0.1.0 layout — see [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) for the current module map.

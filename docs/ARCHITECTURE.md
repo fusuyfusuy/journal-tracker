@@ -100,8 +100,22 @@ Same guarantees as the original design, enforced at service boundaries:
 
 ## Not included in v2
 
-- **Migrations**: `synchronize: true` is fine for dev; switch to `typeorm migration:generate` before production.
-- **Functional Crossref / PubMed / HTML fetchers**: interfaces + stubs only, as with v1.
-- **Auth on the API**: `/journals`, `/subscribers`, `/cycles` are open. Put an auth guard in before exposing publicly.
-- **Retry queue for failed notifications**: BullMQ supports per-job retries; not configured yet.
-- **Per-subscriber journal filtering, digest batching**: still out of scope per original requirements.
+Tracked as GitHub issues:
+
+- [#1](https://github.com/fusuyfusuy/journal-tracker/issues/1) **Migrations**: `synchronize: true` is fine for dev; switch to `typeorm migration:generate` before production.
+- [#2](https://github.com/fusuyfusuy/journal-tracker/issues/2) **Auth on the API**: `/journals`, `/subscribers`, `/cycles` are open. Put an auth guard in before exposing publicly.
+- [#3](https://github.com/fusuyfusuy/journal-tracker/issues/3) **Retry queue for failed notifications**: BullMQ supports per-job retries; not configured yet.
+- [#4](https://github.com/fusuyfusuy/journal-tracker/issues/4) **Containerization**: Dockerfile + docker-compose for worker/api/redis.
+- [#5](https://github.com/fusuyfusuy/journal-tracker/issues/5) **Observability**: metrics, tracing, `/health` / `/ready` endpoints.
+
+Still out of scope per original [`.mcd/requirements.md`](../.mcd/requirements.md):
+
+- **Functional Crossref / PubMed / HTML fetchers**: interfaces + stubs only.
+- **Per-subscriber journal filtering, digest batching**: global fan-out, per-article notifications.
+
+## Tests
+
+See [`docs/TESTING.md`](./TESTING.md) for the full test layout. Highlights that verify the statechart guarantees:
+
+- `apps/worker/src/cycle/cycle.service.spec.ts` exercises per-journal fault isolation, DOI-preferred dedupe, and notifier-exception continuation against an in-memory TypeORM DB.
+- Each fetcher/notifier has a `.spec.ts` asserting the "return an error result, don't throw" contract that keeps the cycle loop running.
