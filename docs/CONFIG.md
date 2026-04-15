@@ -1,44 +1,52 @@
 # Configuration
 
-All runtime configuration is read from environment variables by `src/config.ts`. Invalid or missing required values abort startup with a structured log line.
+Loaded via `@nestjs/config` + `registerAs('app', ...)` in `libs/shared/src/config/app.config.ts`. Retrieve anywhere via `config.getOrThrow<AppConfig>('app')`.
 
-## Environment variables
+## Required
 
-### `RESEND_API_KEY` (required)
+### `RESEND_API_KEY`
+Bearer token for the Resend REST API. Startup aborts if unset or empty — this is checked eagerly in `appConfig()` so misconfiguration fails fast rather than on the first email dispatch.
 
-Bearer token for the Resend REST API. Sent as `Authorization: Bearer <key>` on every email notification POST to `https://api.resend.com/emails`.
+Use a dummy value (`RESEND_API_KEY=unused`) for webhook-only deployments.
 
-Startup will fail with `config.invalid: RESEND_API_KEY environment variable is required and must not be empty` if unset or empty.
+## Optional
 
-> The key is required even when no email subscribers are configured, because config validation runs before subscriber enumeration. Use a dummy value (`RESEND_API_KEY=unused`) for webhook-only deployments.
+### `CHECK_INTERVAL_MS`
+BullMQ repeatable job interval in milliseconds.
+- Default: `21_600_000` (6 h)
+- Floor: `3_600_000` (1 h) — smaller values are clamped
+- Non-integer: abort with `CHECK_INTERVAL_MS must be an integer`
 
-### `CHECK_INTERVAL_MS` (optional)
+### `DB_PATH`
+SQLite file path for TypeORM.
+- Default: `./data/journal-tracker.db`
+- Create the parent directory before first run, or TypeORM will error.
 
-Scheduler polling interval in milliseconds.
+### `REDIS_HOST` / `REDIS_PORT` / `REDIS_PASSWORD`
+BullMQ connection.
+- Defaults: `localhost:6379`, no password.
 
-- **Default:** `21_600_000` (6 hours)
-- **Minimum:** `3_600_000` (1 hour) — smaller values are silently clamped up. The floor exists to discourage aggressive polling of upstream sources; pick a higher value for production (6–12 h is polite per most publishers' terms).
-- **Type error** (non-numeric): aborts with `CHECK_INTERVAL_MS must be a valid integer`.
+### `RESEND_FROM`
+`from` address used in outgoing emails.
+- Default: `notifications@example.com`. Override before sending real mail.
 
-### `DB_PATH` (optional)
+### `API_PORT`
+HTTP port for `apps/api`.
+- Default: `3000`.
 
-Path to the SQLite database file.
+## Timeouts (source-level, not env)
 
-- **Default:** `./data/journal-tracker.db`
-- Any path `bun:sqlite` accepts works, including `:memory:` for ephemeral runs.
-- The file and parent directory are created on first `initDb()` if missing.
-
-## User-Agent
-
-The HTTP `User-Agent` header sent with every outbound fetch (both fetchers and notifiers) is hard-coded as `academic-journal-tracker/1.0` in `config.ts`. Edit there if you need to identify your deployment to upstream publishers.
-
-## Timeouts
-
-Not env-configurable in v1 — edit the call sites:
-
-- **Fetch:** 30 s — set via `AbortSignal.timeout(30_000)` inside each `Fetcher.fetch()` implementation.
-- **Notify:** 15 s — set via `AbortSignal.timeout(15_000)` inside each `Notifier.dispatch()` implementation.
+- Fetch: 30 s — `AbortSignal.timeout(30_000)` in each `Fetcher.fetch()`.
+- Notify: 15 s — `AbortSignal.timeout(15_000)` in each `Notifier.dispatch()`.
 
 ## Logging
 
-No env knob — the logger always emits structured JSON to stdout, one record per line. Redirect to a file or pipe into `jq` / a log shipper as needed. Log levels are fixed at source (`log.info` / `log.warn` / `log.error` / `log.debug`); there is no filter.
+Structured JSON to stdout, one record per line (`libs/shared/src/logging/logger.service.ts`). No level filter — pipe to `jq`/`vector`/`promtail` and filter downstream.
+
+## TypeORM
+
+`synchronize: true` in `DatabaseModule` — the schema is auto-created on boot. Fine for dev and integration tests; before production, generate migrations and set `synchronize: false`:
+
+```bash
+bunx typeorm migration:generate -d <data-source-file> <MigrationName>
+```

@@ -1,17 +1,31 @@
 {
   "compilerOptions": {
-    "target": "ESNext",
-    "module": "ESNext",
-    "moduleResolution": "bundler",
-    "strict": true,
+    "module": "commonjs",
+    "declaration": true,
+    "removeComments": true,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "allowSyntheticDefaultImports": true,
+    "target": "ES2022",
+    "sourceMap": true,
+    "outDir": "./dist",
+    "baseUrl": "./",
+    "incremental": true,
     "skipLibCheck": true,
-    "types": ["@types/bun"],
-    "outDir": "dist",
-    "rootDir": ".",
+    "strictNullChecks": true,
+    "noImplicitAny": true,
+    "strictBindCallApply": true,
+    "forceConsistentCasingInFileNames": true,
+    "noFallthroughCasesInSwitch": true,
     "esModuleInterop": true,
-    "allowImportingTsExtensions": true,
-    "noEmit": true
+    "resolveJsonModule": true,
+    "paths": {
+      "@journal/database": ["libs/database/src"],
+      "@journal/database/*": ["libs/database/src/*"],
+      "@journal/shared": ["libs/shared/src"],
+      "@journal/shared/*": ["libs/shared/src/*"]
+    }
   },
-  "include": ["src/**/*.ts"],
-  "exclude": ["node_modules", "dist"]
+  "include": ["apps/**/*", "libs/**/*"],
+  "exclude": ["node_modules", "dist", "**/*.spec.ts"]
 }

@@ -1,7 +1,12 @@
 node_modules/
+dist/
+coverage/
 *.sqlite
 *.sqlite-journal
+*.db
 .env
 .env.local
 .DS_Store
 .serena/
+data/
+*.tsbuildinfo
