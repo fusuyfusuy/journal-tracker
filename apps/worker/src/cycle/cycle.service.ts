@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { InjectQueue } from '@nestjs/bullmq';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Article, Journal, Subscriber } from '@journal/database';
@@ -10,17 +11,18 @@ import {
   NormalizedArticle,
   StructuredLogger,
 } from '@journal/shared';
+import { Queue } from 'bullmq';
 import { Repository } from 'typeorm';
 import { FetchersService } from '../fetchers/fetchers.service';
-import { NotifiersService } from '../notifiers/notifiers.service';
+import { NOTIFY_JOB, NOTIFY_JOB_OPTS, NOTIFY_QUEUE } from './queue.constants';
 
 @Injectable()
 export class CycleService {
   constructor(
     private readonly config: ConfigService,
     private readonly fetchers: FetchersService,
-    private readonly notifiers: NotifiersService,
     private readonly log: StructuredLogger,
+    @InjectQueue(NOTIFY_QUEUE) private readonly notifyQueue: Queue,
     @InjectRepository(Journal) private readonly journalRepo: Repository<Journal>,
     @InjectRepository(Article) private readonly articleRepo: Repository<Article>,
     @InjectRepository(Subscriber) private readonly subscriberRepo: Repository<Subscriber>,
@@ -99,7 +101,7 @@ export class CycleService {
     article: NormalizedArticle,
     journal: Journal,
     subscribers: Subscriber[],
-    app: AppConfig,
+    _app: AppConfig,
   ): Promise<'new' | 'skipped' | 'error'> {
     const dedupe_key = article.doi ?? article.url;
     try {
@@ -131,24 +133,11 @@ export class CycleService {
     }
 
     for (const subscriber of subscribers) {
-      try {
-        const notifier = this.notifiers.resolve(subscriber.channel_type);
-        const event = await notifier.dispatch(saved, subscriber, app);
-        if (event.status === 'ok') {
-          this.log.info('deliver.ok', {
-            article_id: event.article_id,
-            subscriber_id: event.subscriber_id,
-            channel: event.channel,
-          });
-        } else {
-          this.log.warn('deliver.error', { ...event });
-        }
-      } catch (e) {
-        this.log.error('deliver.exception', {
-          subscriber_id: subscriber.id,
-          message: (e as Error).message,
-        });
-      }
+      await this.notifyQueue.add(
+        NOTIFY_JOB,
+        { article: { ...saved, published_at: saved.published_at.toISOString(), created_at: saved.created_at.toISOString() }, subscriber: { ...subscriber, created_at: subscriber.created_at.toISOString() } },
+        NOTIFY_JOB_OPTS,
+      );
     }
 
     return 'new';

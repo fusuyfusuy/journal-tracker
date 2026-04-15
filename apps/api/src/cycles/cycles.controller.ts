@@ -5,13 +5,20 @@ import { Queue } from 'bullmq';
 const CYCLE_QUEUE = 'cycle';
 const CYCLE_JOB = 'run-cycle';
 
+const CYCLE_JOB_OPTS = {
+  attempts: 3,
+  backoff: { type: 'exponential', delay: 30_000 },
+  removeOnComplete: 100,
+  removeOnFail: 50,
+} as const;
+
 @Controller('cycles')
 export class CyclesController {
   constructor(@InjectQueue(CYCLE_QUEUE) private readonly queue: Queue) {}
 
   @Post()
   async trigger() {
-    const job = await this.queue.add(CYCLE_JOB, { source: 'api' }, { removeOnComplete: 100 });
+    const job = await this.queue.add(CYCLE_JOB, { source: 'api' }, { ...CYCLE_JOB_OPTS });
     return { id: job.id, queued_at: new Date().toISOString() };
   }
 
