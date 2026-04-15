@@ -1,5 +1,6 @@
 import { Column, CreateDateColumn, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
 import { Article } from './article.entity';
+import { BooleanColumn } from './transformers';
 
 @Entity('journals')
 export class Journal {
@@ -15,7 +16,7 @@ export class Journal {
   @Column({ type: 'text', name: 'feed_url' })
   feed_url!: string;
 
-  @Column({ type: 'integer', default: 1 })
+  @Column({ type: 'integer', default: 1, transformer: BooleanColumn })
   active!: boolean;
 
   @CreateDateColumn({ name: 'created_at', type: 'datetime' })

@@ -21,7 +21,7 @@ export class SubscribersService {
     return s;
   }
 
-  create(dto: CreateSubscriberDto): Promise<Subscriber> {
+  async create(dto: CreateSubscriberDto): Promise<Subscriber> {
     this.validateDestination(dto.channel_type, dto.destination);
     return this.repo.save(this.repo.create({ ...dto, active: dto.active ?? true }));
   }

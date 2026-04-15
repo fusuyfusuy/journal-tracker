@@ -53,10 +53,11 @@
   "jest": {
     "moduleFileExtensions": ["js", "json", "ts"],
     "rootDir": ".",
-    "testRegex": ".*\\.spec\\.ts$",
-    "transform": { "^.+\\.(t|j)s$": "ts-jest" },
-    "collectCoverageFrom": ["**/*.(t|j)s"],
-    "coverageDirectory": "./coverage",
+    "roots": ["<rootDir>/apps", "<rootDir>/libs"],
+    "testRegex": ".*\\.(spec|e2e-spec)\\.ts$",
+    "transform": {
+      "^.+\\.(t|j)s$": ["ts-jest", { "tsconfig": "<rootDir>/tsconfig.json" }]
+    },
     "testEnvironment": "node",
     "moduleNameMapper": {
       "^@journal/database(|/.*)$": "<rootDir>/libs/database/src$1",

@@ -1,4 +1,5 @@
 import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import { BooleanColumn } from './transformers';
 
 @Entity('subscribers')
 export class Subscriber {
@@ -11,7 +12,7 @@ export class Subscriber {
   @Column({ type: 'text' })
   destination!: string;
 
-  @Column({ type: 'integer', default: 1 })
+  @Column({ type: 'integer', default: 1, transformer: BooleanColumn })
   active!: boolean;
 
   @CreateDateColumn({ name: 'created_at', type: 'datetime' })
