@@ -34,7 +34,8 @@ bun run start:api:dev          # boots the REST API on API_PORT (default 3000)
 
 Trigger a one-off cycle from the API:
 ```bash
-curl -X POST http://localhost:3000/cycles
+curl -X POST http://localhost:3000/cycles \
+  -H "X-API-Key: your-api-key"
 ```
 
 ### Docker
@@ -66,6 +67,20 @@ Minimum:
 - `DB_PATH` — default `./data/journal-tracker.db`.
 
 ## REST endpoints (`apps/api`)
+
+All endpoints require an `X-API-Key` header matching one of the configured `API_KEYS`.
+
+Example:
+```bash
+# List journals
+curl http://localhost:3000/journals -H "X-API-Key: your-api-key"
+
+# Create a subscriber
+curl -X POST http://localhost:3000/subscribers \
+  -H "X-API-Key: your-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{"channel_type":"email","destination":"user@example.com"}'
+```
 
 | Method | Path | Body | Purpose |
 |---|---|---|---|

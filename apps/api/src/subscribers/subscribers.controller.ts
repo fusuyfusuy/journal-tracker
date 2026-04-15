@@ -9,6 +9,7 @@ import {
   Patch,
   Post,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { CreateSubscriberDto, UpdateSubscriberDto } from './subscribers.dto';
 import { SubscribersService } from './subscribers.service';
 
@@ -26,6 +27,7 @@ export class SubscribersController {
     return this.service.get(id);
   }
 
+  @Throttle({ default: { ttl: 60_000, limit: 10 } })
   @Post()
   create(@Body() dto: CreateSubscriberDto) {
     return this.service.create(dto);

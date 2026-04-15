@@ -5,6 +5,7 @@ export interface AppConfig {
   dbPath: string;
   dbSynchronize: boolean;
   userAgent: string;
+  apiKeys: string[];
   redis: { host: string; port: number; password?: string };
   resend: { apiKey: string; from: string };
   api: { port: number };
@@ -34,11 +35,17 @@ export const appConfig = registerAs('app', (): AppConfig => {
     throw new Error(`DB_SYNCHRONIZE must be "true" or "false", got "${process.env.DB_SYNCHRONIZE}"`);
   }
 
+  const apiKeys = (process.env.API_KEYS ?? '')
+    .split(',')
+    .map((k) => k.trim())
+    .filter((k) => k.length > 0);
+
   return {
     checkIntervalMs,
     dbPath: process.env.DB_PATH ?? './data/journal-tracker.db',
     dbSynchronize: rawSynchronize === 'true',
     userAgent: 'academic-journal-tracker/2.0',
+    apiKeys,
     redis: {
       host: process.env.REDIS_HOST ?? 'localhost',
       port: Number.parseInt(process.env.REDIS_PORT ?? '6379', 10),

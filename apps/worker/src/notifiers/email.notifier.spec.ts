@@ -26,6 +26,7 @@ const config = {
   checkIntervalMs: 3_600_000,
   dbPath: ':memory:',
   dbSynchronize: false,
+  apiKeys: [],
   redis: { host: 'x', port: 6379 },
   resend: { apiKey: 'rk_test', from: 'from@example.com' },
   api: { port: 3000 },
