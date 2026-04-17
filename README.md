@@ -37,6 +37,14 @@ Trigger a one-off cycle from the API:
 curl -X POST http://localhost:3000/cycles
 ```
 
+### Docker
+
+```bash
+cp .env.example .env           # edit RESEND_API_KEY
+docker compose up --build      # redis + worker + api, with shared volume
+curl http://localhost:3000/journals
+```
+
 ## Scripts
 
 | Command | What it does |
