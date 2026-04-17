@@ -12,6 +12,7 @@ import {
   NOTIFY_JOB_OPTS,
   NOTIFY_QUEUE,
   NormalizedArticle,
+  NotifyJobData,
   StructuredLogger,
 } from '@journal/shared';
 import { Queue } from 'bullmq';
@@ -89,10 +90,7 @@ export class CycleService {
     }
 
     for (const article of fetchResult.articles) {
-      const processed = await this.processArticle(article, journal, subscribers, app);
-      if (processed === 'new') result.new_articles += 1;
-      else if (processed === 'skipped') result.skipped += 1;
-      else result.errors += 1;
+      await this.processArticle(article, journal, subscribers, app, result);
     }
 
     this.log.info('journal.processed', { ...result });
@@ -104,17 +102,20 @@ export class CycleService {
     journal: Journal,
     subscribers: Subscriber[],
     _app: AppConfig,
-  ): Promise<'new' | 'skipped' | 'error'> {
+    result: JournalResult,
+  ): Promise<void> {
     const dedupe_key = article.doi ?? article.url;
     try {
       const existing = await this.articleRepo.findOne({ where: { dedupe_key } });
       if (existing) {
         this.log.debug('article.skip', { dedupe_key, title: article.title });
-        return 'skipped';
+        result.skipped += 1;
+        return;
       }
     } catch (e) {
       this.log.error('db.error', { kind: 'dedupe_check', message: (e as Error).message });
-      return 'error';
+      result.errors += 1;
+      return;
     }
 
     let saved: Article;
@@ -131,25 +132,44 @@ export class CycleService {
       );
     } catch (e) {
       this.log.error('db.error', { kind: 'insert', message: (e as Error).message });
-      return 'error';
+      result.errors += 1;
+      return;
     }
 
+    result.new_articles += 1;
+
+    const articlePayload: NotifyJobData['article'] = {
+      id: saved.id,
+      journal_id: saved.journal_id,
+      title: saved.title,
+      url: saved.url,
+      doi: saved.doi,
+      published_at: saved.published_at.toISOString(),
+      dedupe_key: saved.dedupe_key,
+      created_at: saved.created_at.toISOString(),
+    };
+
     for (const subscriber of subscribers) {
+      const payload: NotifyJobData = {
+        article: articlePayload,
+        subscriber: {
+          id: subscriber.id,
+          channel_type: subscriber.channel_type,
+          destination: subscriber.destination,
+          active: subscriber.active,
+          created_at: subscriber.created_at.toISOString(),
+        },
+      };
       try {
-        await this.notifyQueue.add(
-          NOTIFY_JOB,
-          { article: { ...saved, published_at: saved.published_at.toISOString(), created_at: saved.created_at.toISOString() }, subscriber: { ...subscriber, created_at: subscriber.created_at.toISOString() } },
-          NOTIFY_JOB_OPTS,
-        );
+        await this.notifyQueue.add(NOTIFY_JOB, payload, NOTIFY_JOB_OPTS);
       } catch (e) {
         this.log.error('notify.enqueue.error', {
           article_id: saved.id,
           subscriber_id: subscriber.id,
           message: (e as Error).message,
         });
+        result.errors += 1;
       }
     }
-
-    return 'new';
   }
 }

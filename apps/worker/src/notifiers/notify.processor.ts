@@ -1,31 +1,38 @@
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job, UnrecoverableError } from 'bullmq';
 import { Article, Subscriber } from '@journal/database';
-import { AppConfig, NOTIFY_QUEUE, NotificationEvent, StructuredLogger } from '@journal/shared';
+import {
+  AppConfig,
+  NOTIFY_QUEUE,
+  NotificationEvent,
+  NotifyJobData,
+  StructuredLogger,
+} from '@journal/shared';
 import { ConfigService } from '@nestjs/config';
 import { NotifiersService } from './notifiers.service';
 
-export interface NotifyJobData {
-  article: Record<string, unknown>;
-  subscriber: Record<string, unknown>;
-}
+export type { NotifyJobData };
 
-function reviveArticle(raw: Record<string, unknown>): Article {
-  const article = { ...raw } as unknown as Article;
-  if (typeof raw.published_at === 'string') {
-    article.published_at = new Date(raw.published_at);
-  }
-  if (typeof raw.created_at === 'string') {
-    article.created_at = new Date(raw.created_at);
-  }
+function reviveArticle(raw: NotifyJobData['article']): Article {
+  const article = new Article();
+  article.id = raw.id;
+  article.journal_id = raw.journal_id;
+  article.title = raw.title;
+  article.url = raw.url;
+  article.doi = raw.doi;
+  article.published_at = new Date(raw.published_at);
+  article.dedupe_key = raw.dedupe_key;
+  article.created_at = new Date(raw.created_at);
   return article;
 }
 
-function reviveSubscriber(raw: Record<string, unknown>): Subscriber {
-  const subscriber = { ...raw } as unknown as Subscriber;
-  if (typeof raw.created_at === 'string') {
-    subscriber.created_at = new Date(raw.created_at);
-  }
+function reviveSubscriber(raw: NotifyJobData['subscriber']): Subscriber {
+  const subscriber = new Subscriber();
+  subscriber.id = raw.id;
+  subscriber.channel_type = raw.channel_type;
+  subscriber.destination = raw.destination;
+  subscriber.active = raw.active;
+  subscriber.created_at = new Date(raw.created_at);
   return subscriber;
 }
 
@@ -44,7 +51,14 @@ export class NotifyProcessor extends WorkerHost {
     const subscriber = reviveSubscriber(job.data.subscriber);
     const app = this.config.getOrThrow<AppConfig>('app');
 
-    const notifier = this.notifiers.resolve(subscriber.channel_type);
+    let notifier;
+    try {
+      notifier = this.notifiers.resolve(subscriber.channel_type);
+    } catch (e) {
+      throw new UnrecoverableError(
+        `unknown channel "${subscriber.channel_type}": ${(e as Error).message}`,
+      );
+    }
     const event = await notifier.dispatch(article, subscriber, app);
 
     if (event.status === 'error') {

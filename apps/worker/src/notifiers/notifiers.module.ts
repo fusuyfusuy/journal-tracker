@@ -1,12 +1,13 @@
+import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
-import { NOTIFIER_TOKEN } from '@journal/shared';
+import { NOTIFIER_TOKEN, NOTIFY_QUEUE } from '@journal/shared';
 import { EmailNotifier } from './email.notifier';
 import { NotifyProcessor } from './notify.processor';
 import { NotifiersService } from './notifiers.service';
 import { WebhookNotifier } from './webhook.notifier';
 
 @Module({
-  imports: [],
+  imports: [BullModule.registerQueue({ name: NOTIFY_QUEUE })],
   providers: [
     EmailNotifier,
     WebhookNotifier,
@@ -18,6 +19,6 @@ import { WebhookNotifier } from './webhook.notifier';
     NotifiersService,
     NotifyProcessor,
   ],
-  exports: [NotifiersService],
+  exports: [NotifiersService, BullModule],
 })
 export class NotifiersModule {}
