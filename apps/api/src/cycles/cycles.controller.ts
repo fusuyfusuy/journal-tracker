@@ -1,9 +1,7 @@
 import { BullModule, InjectQueue } from '@nestjs/bullmq';
 import { Controller, Get, Module, Param, Post } from '@nestjs/common';
+import { CYCLE_JOB, CYCLE_JOB_OPTS, CYCLE_QUEUE } from '@journal/shared';
 import { Queue } from 'bullmq';
-
-const CYCLE_QUEUE = 'cycle';
-const CYCLE_JOB = 'run-cycle';
 
 @Controller('cycles')
 export class CyclesController {
@@ -11,7 +9,7 @@ export class CyclesController {
 
   @Post()
   async trigger() {
-    const job = await this.queue.add(CYCLE_JOB, { source: 'api' }, { removeOnComplete: 100 });
+    const job = await this.queue.add(CYCLE_JOB, { source: 'api' }, { ...CYCLE_JOB_OPTS });
     return { id: job.id, queued_at: new Date().toISOString() };
   }
 

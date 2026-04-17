@@ -1,8 +1,8 @@
-import { Inject, Injectable, OnApplicationBootstrap } from '@nestjs/common';
+import { Injectable, OnApplicationBootstrap } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { ConfigService } from '@nestjs/config';
 import { Queue } from 'bullmq';
-import { AppConfig, StructuredLogger } from '@journal/shared';
+import { AppConfig, CYCLE_JOB_OPTS, StructuredLogger } from '@journal/shared';
 import { CYCLE_JOB, CYCLE_QUEUE } from './cycle.processor';
 
 /**
@@ -26,10 +26,9 @@ export class SchedulerBootstrap implements OnApplicationBootstrap {
       CYCLE_JOB,
       {},
       {
+        ...CYCLE_JOB_OPTS,
         repeat: { every: everyMs },
         jobId: 'cycle-repeat',
-        removeOnComplete: 100,
-        removeOnFail: 50,
       },
     );
 

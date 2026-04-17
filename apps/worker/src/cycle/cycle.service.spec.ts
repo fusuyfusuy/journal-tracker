@@ -1,11 +1,11 @@
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { getQueueToken } from '@nestjs/bullmq';
 import { Test, TestingModule } from '@nestjs/testing';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Article, Journal, Subscriber } from '@journal/database';
-import { AppConfig, LoggingModule, StructuredLogger } from '@journal/shared';
+import { AppConfig, LoggingModule, NOTIFY_QUEUE, StructuredLogger } from '@journal/shared';
 import { Repository } from 'typeorm';
 import { FetchersService } from '../fetchers/fetchers.service';
-import { NotifiersService } from '../notifiers/notifiers.service';
 import { CycleService } from './cycle.service';
 
 const testConfig = (): { app: AppConfig } => ({
@@ -28,7 +28,9 @@ describe('CycleService', () => {
   let subscriberRepo: Repository<Subscriber>;
 
   const fetchMock = jest.fn();
-  const dispatchMock = jest.fn();
+  const addMock = jest.fn();
+  const queueMock = { add: addMock };
+
   const silentLogger = {
     info: jest.fn(),
     warn: jest.fn(),
@@ -40,7 +42,7 @@ describe('CycleService', () => {
 
   beforeEach(async () => {
     fetchMock.mockReset();
-    dispatchMock.mockReset();
+    addMock.mockReset();
 
     moduleRef = await Test.createTestingModule({
       imports: [
@@ -64,10 +66,8 @@ describe('CycleService', () => {
           },
         },
         {
-          provide: NotifiersService,
-          useValue: {
-            resolve: () => ({ channel: 'email', dispatch: dispatchMock }),
-          },
+          provide: getQueueToken(NOTIFY_QUEUE),
+          useValue: queueMock,
         },
       ],
     })
@@ -116,7 +116,7 @@ describe('CycleService', () => {
     error: null,
   });
 
-  it('persists new articles and dispatches to each subscriber', async () => {
+  it('persists new articles and enqueues notify jobs for each subscriber', async () => {
     await seedJournal();
     await seedSubscriber();
     await seedSubscriber();
@@ -127,33 +127,18 @@ describe('CycleService', () => {
         { title: 'B', url: 'https://ex.org/b' },
       ]),
     );
-    dispatchMock.mockResolvedValue({
-      article_id: 0,
-      subscriber_id: 0,
-      channel: 'email',
-      status: 'ok',
-      dispatched_at: new Date().toISOString(),
-    });
 
     const summary = await service.run();
 
     expect(summary.articles_new).toBe(2);
     expect(summary.errors).toBe(0);
     expect(await articleRepo.count()).toBe(2);
-    expect(dispatchMock).toHaveBeenCalledTimes(4); // 2 articles × 2 subscribers
+    expect(addMock).toHaveBeenCalledTimes(4); // 2 articles × 2 subscribers
   });
 
   it('dedupes articles by DOI (DOI preferred over URL)', async () => {
     await seedJournal();
     await seedSubscriber();
-
-    dispatchMock.mockResolvedValue({
-      article_id: 0,
-      subscriber_id: 0,
-      channel: 'email',
-      status: 'ok',
-      dispatched_at: new Date().toISOString(),
-    });
 
     fetchMock.mockResolvedValueOnce(fetchOk([{ title: 'A', url: 'https://ex.org/a', doi: '10.1/dup' }]));
     await service.run();
@@ -182,13 +167,6 @@ describe('CycleService', () => {
       if (journal.id === j1.id) throw new Error('feed exploded');
       return fetchOk([{ title: 'from-j2', url: 'https://ex.org/j2' }]);
     });
-    dispatchMock.mockResolvedValue({
-      article_id: 0,
-      subscriber_id: 0,
-      channel: 'email',
-      status: 'ok',
-      dispatched_at: new Date().toISOString(),
-    });
 
     const summary = await service.run();
 
@@ -214,20 +192,21 @@ describe('CycleService', () => {
     expect(summary.articles_new).toBe(0);
     expect(summary.errors).toBe(1);
     expect(await articleRepo.count()).toBe(0);
-    expect(dispatchMock).not.toHaveBeenCalled();
+    expect(addMock).not.toHaveBeenCalled();
   });
 
-  it('continues when a notifier throws', async () => {
+  it('persists article even when notify queue.add succeeds (queue is fire-and-forget)', async () => {
     await seedJournal();
     await seedSubscriber();
 
     fetchMock.mockResolvedValue(fetchOk([{ title: 'A', url: 'https://ex.org/a' }]));
-    dispatchMock.mockRejectedValue(new Error('notifier boom'));
+    addMock.mockResolvedValue({ id: 'job-1' });
 
     const summary = await service.run();
 
-    // Article still persisted; notifier exception is logged, not fatal.
+    // Article still persisted; notify job was enqueued.
     expect(summary.articles_new).toBe(1);
     expect(await articleRepo.count()).toBe(1);
+    expect(addMock).toHaveBeenCalledTimes(1);
   });
 });
