@@ -14,10 +14,6 @@ const TEST_API_KEY = 'test-key';
 describe('API (journals + subscribers) — e2e', () => {
   let app: INestApplication;
 
-  beforeAll(() => {
-    process.env.API_KEYS = TEST_API_KEY;
-  });
-
   beforeEach(async () => {
     const moduleRef = await Test.createTestingModule({
       imports: [

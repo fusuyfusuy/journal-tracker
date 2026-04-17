@@ -8,7 +8,7 @@ import { Queue } from 'bullmq';
 export class CyclesController {
   constructor(@InjectQueue(CYCLE_QUEUE) private readonly queue: Queue) {}
 
-  @Throttle({ default: { ttl: 60_000, limit: 6 } })
+  @Throttle({ default: { ttl: 60, limit: 6 } })
   @Post()
   async trigger() {
     const job = await this.queue.add(CYCLE_JOB, { source: 'api' }, { ...CYCLE_JOB_OPTS });

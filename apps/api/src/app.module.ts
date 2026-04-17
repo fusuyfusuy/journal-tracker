@@ -16,7 +16,7 @@ import { ApiKeyGuard } from './auth/api-key.guard';
     ConfigModule.forRoot({ isGlobal: true, load: [appConfig] }),
     LoggingModule,
     DatabaseModule,
-    ThrottlerModule.forRoot([{ ttl: 60000, limit: 60 }]),
+    ThrottlerModule.forRoot([{ ttl: 60, limit: 60 }]),
     BullModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => {

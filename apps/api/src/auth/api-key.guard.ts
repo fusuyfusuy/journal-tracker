@@ -24,12 +24,20 @@ export class ApiKeyGuard implements CanActivate {
     ]);
     if (isPublic) return true;
 
-    const request = context.switchToHttp().getRequest<{ headers: Record<string, string | undefined> }>();
-    const incoming = request.headers['x-api-key'];
+    const request = context.switchToHttp().getRequest<{
+      headers: Record<string, string | string[] | undefined>;
+    }>();
+    const incomingHeader = request.headers['x-api-key'];
 
-    if (!incoming) {
+    if (!incomingHeader) {
       throw new UnauthorizedException('Missing X-API-Key header');
     }
+
+    if (Array.isArray(incomingHeader)) {
+      throw new UnauthorizedException('Multiple X-API-Key headers are not allowed');
+    }
+
+    const incoming = incomingHeader;
 
     const cfg = this.config.get<AppConfig>('app');
     const apiKeys: string[] = cfg?.apiKeys ?? [];

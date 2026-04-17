@@ -15,8 +15,7 @@ Use a dummy value (`RESEND_API_KEY=unused`) for webhook-only deployments.
 Comma-separated list of shared-secret API keys for machine-to-machine access. Each request to the REST API must supply one of these values in the `X-API-Key` header.
 
 - Format: `API_KEYS=key1,key2,key3` (values are trimmed; empty entries ignored)
-- If unset or empty in production (`NODE_ENV=production`), a warning is logged on startup — the API will reject all requests.
-- In development, an empty list is tolerated (no warning) to keep ergonomics smooth.
+- If the resulting list is empty, all non-`@Public()` routes will reject requests with 401.
 
 Example:
 ```bash

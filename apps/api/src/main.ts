@@ -14,9 +14,9 @@ async function bootstrap(): Promise<void> {
   const cfg = config.getOrThrow<AppConfig>('app');
   const logger = app.get(StructuredLogger);
 
-  if (cfg.apiKeys.length === 0 && process.env.NODE_ENV === 'production') {
+  if (cfg.apiKeys.length === 0) {
     logger.warn('api.no_api_keys', {
-      message: 'API_KEYS is empty — all requests will be rejected in production',
+      message: 'API_KEYS is empty — all non-@Public() requests will be rejected until API keys are configured',
     });
   }
 
