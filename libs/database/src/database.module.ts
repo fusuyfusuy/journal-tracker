@@ -5,6 +5,7 @@ import { AppConfig } from '@journal/shared';
 import { Article } from './entities/article.entity';
 import { Journal } from './entities/journal.entity';
 import { Subscriber } from './entities/subscriber.entity';
+import { MIGRATIONS } from './migrations';
 
 @Module({
   imports: [
@@ -19,7 +20,7 @@ import { Subscriber } from './entities/subscriber.entity';
           entities: [Journal, Article, Subscriber],
           synchronize: app.dbSynchronize,
           migrationsRun: !app.dbSynchronize,
-          migrations: [__dirname + '/migrations/*{.ts,.js}'],
+          migrations: MIGRATIONS,
         };
       },
     }),

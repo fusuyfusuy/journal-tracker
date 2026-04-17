@@ -18,3 +18,23 @@ export interface Notifier {
 }
 
 export const NOTIFIER_TOKEN = Symbol('NOTIFIER_TOKEN');
+
+export interface NotifyJobData {
+  article: {
+    id: number;
+    journal_id: number;
+    title: string;
+    url: string;
+    doi: string | null;
+    published_at: string;
+    dedupe_key: string;
+    created_at: string;
+  };
+  subscriber: {
+    id: number;
+    channel_type: ChannelType;
+    destination: string;
+    active: boolean;
+    created_at: string;
+  };
+}

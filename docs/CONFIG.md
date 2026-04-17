@@ -90,4 +90,6 @@ bun run migration:run
 bun run migration:revert
 ```
 
+After generating a new migration, add the exported class to `libs/database/src/migrations/index.ts` so both `DatabaseModule` and the CLI `DataSource` pick it up — the `MIGRATIONS` array is the single source of truth.
+
 The CLI DataSource file is `libs/database/src/data-source.ts`. It reads `DB_PATH` from the environment, so set that before running CLI commands against a non-default database file.

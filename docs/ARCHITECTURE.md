@@ -101,7 +101,7 @@ Same guarantees as the original design, enforced at service boundaries:
 - **Fetcher throws** → `CycleService.processJournal` catches, logs `fetch.error`, increments `errors`, continues.
 - **Fetcher returns `{error: non-null}`** → logs `fetch.failed`, same continue path.
 - **DB throws during dedupe or insert** → `CycleService.processArticle` returns `'error'`, increments `errors`, moves on.
-- **Notify enqueue** → `CycleService` enqueues the job and moves on. Delivery failures are isolated to the `notify` queue and handled by `NotifyProcessor` with BullMQ retries.
+- **Notify enqueue** → `CycleService` wraps each `notifyQueue.add(...)` call in a per-subscriber try/catch. Enqueue failures are logged (`notify.enqueue.error`) and increment the cycle's `errors` counter, but never propagate — the article stays persisted and remaining subscribers are still enqueued. Delivery failures (once a job is on the queue) are isolated to the `notify` queue and handled by `NotifyProcessor` with BullMQ retries.
 - **Notifier 5xx / timeout** → `NotifyProcessor` throws a regular Error; BullMQ retries up to 5 times with exponential backoff.
 - **Notifier 4xx** → `NotifyProcessor` throws `UnrecoverableError`; BullMQ immediately moves the job to failed (no retry — invalid destination).
 - **Timeouts** use `AbortSignal.timeout()` inside each fetcher/notifier — the thrown `TimeoutError` propagates and triggers a BullMQ retry.

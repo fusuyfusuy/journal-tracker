@@ -7,6 +7,7 @@ describe('HealthController', () => {
   let controller: HealthController;
   let healthCheckService: jest.Mocked<HealthCheckService>;
   let redisIndicator: jest.Mocked<RedisHealthIndicator>;
+  let dbIndicator: jest.Mocked<TypeOrmHealthIndicator>;
 
   const passingResult: HealthCheckResult = {
     status: 'ok',
@@ -43,6 +44,7 @@ describe('HealthController', () => {
     controller = module.get<HealthController>(HealthController);
     healthCheckService = module.get(HealthCheckService);
     redisIndicator = module.get(RedisHealthIndicator);
+    dbIndicator = module.get(TypeOrmHealthIndicator);
   });
 
   describe('GET /health', () => {
@@ -54,12 +56,27 @@ describe('HealthController', () => {
   });
 
   describe('GET /ready', () => {
-    it('returns aggregate health check result when all checks pass', async () => {
+    it('wires both db and redis check functions into health.check()', async () => {
       healthCheckService.check.mockResolvedValue(passingResult);
+      dbIndicator.pingCheck.mockResolvedValue({ db: { status: 'up' } });
+      redisIndicator.isHealthy.mockResolvedValue({ redis: { status: 'up' } });
 
       const result = await controller.readiness();
       expect(result).toEqual(passingResult);
-      expect(healthCheckService.check).toHaveBeenCalledWith(expect.arrayContaining([expect.any(Function)]));
+
+      expect(healthCheckService.check).toHaveBeenCalledTimes(1);
+      const checks = healthCheckService.check.mock.calls[0][0];
+      expect(Array.isArray(checks)).toBe(true);
+      expect(checks).toHaveLength(2);
+      expect(typeof checks[0]).toBe('function');
+      expect(typeof checks[1]).toBe('function');
+
+      // Invoke the passed functions; they must delegate to the indicators
+      // with the documented keys ('db' and 'redis').
+      await checks[0]();
+      await checks[1]();
+      expect(dbIndicator.pingCheck).toHaveBeenCalledWith('db');
+      expect(redisIndicator.isHealthy).toHaveBeenCalledWith('redis');
     });
 
     it('rejects with HealthCheckError when RedisHealthIndicator throws', async () => {
