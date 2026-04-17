@@ -4,6 +4,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { DatabaseModule } from '@journal/database';
 import { AppConfig, LoggingModule, appConfig } from '@journal/shared';
 import { CyclesModule } from './cycles/cycles.controller';
+import { HealthModule } from './health/health.module';
 import { JournalsModule } from './journals/journals.module';
 import { SubscribersModule } from './subscribers/subscribers.module';
 
@@ -25,6 +26,7 @@ import { SubscribersModule } from './subscribers/subscribers.module';
         };
       },
     }),
+    HealthModule,
     JournalsModule,
     SubscribersModule,
     CyclesModule,
