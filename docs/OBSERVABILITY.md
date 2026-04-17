@@ -27,8 +27,8 @@ Checks performed:
 
 | Key | What it does |
 |---|---|
-| `db` | `TypeOrmHealthIndicator.pingCheck('db')` — executes `SELECT 1` against the SQLite DataSource |
-| `redis` | `RedisHealthIndicator.isHealthy('redis')` — opens a temporary `ioredis` connection, issues `PING`, closes |
+| `db` | `TypeOrmHealthIndicator.pingCheck('db')` — executes a lightweight query against the configured database |
+| `redis` | `RedisHealthIndicator.isHealthy('redis')` — performs a `PING` check against the Redis instance |
 
 **Response (200 — all checks pass)**
 

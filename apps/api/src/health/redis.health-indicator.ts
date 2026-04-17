@@ -17,17 +17,23 @@ export class RedisHealthIndicator extends HealthIndicator {
       port: app.redis.port,
       password: app.redis.password,
       lazyConnect: true,
+      connectTimeout: 1000,
+      enableOfflineQueue: false,
       maxRetriesPerRequest: 1,
+      retryStrategy: () => null,
     });
 
     try {
       await client.connect();
       await client.ping();
-      await client.quit();
       return this.getStatus(key, true);
     } catch (err) {
-      await client.quit().catch(() => undefined);
-      throw new HealthCheckError('Redis check failed', this.getStatus(key, false, { message: String(err) }));
+      throw new HealthCheckError(
+        'Redis check failed',
+        this.getStatus(key, false, { message: 'Redis is unavailable' }),
+      );
+    } finally {
+      client.disconnect();
     }
   }
 }

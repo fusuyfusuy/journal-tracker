@@ -62,7 +62,7 @@ describe('HealthController', () => {
       expect(healthCheckService.check).toHaveBeenCalledWith(expect.arrayContaining([expect.any(Function)]));
     });
 
-    it('surfaces 503 when RedisHealthIndicator throws', async () => {
+    it('rejects with HealthCheckError when RedisHealthIndicator throws', async () => {
       const { HealthCheckError } = await import('@nestjs/terminus');
       const errorResult: HealthCheckResult = {
         status: 'error',
