@@ -23,6 +23,7 @@ SQLite file path for TypeORM.
 - Create the parent directory before first run, or TypeORM will error.
 
 ### `DB_SYNCHRONIZE`
+
 When `true`, TypeORM will auto-sync the schema on boot (mirrors the old `synchronize: true` behaviour). **Never enable in production.**
 - Default: `false`
 - In-memory test databases set `synchronize: true` directly and are unaffected by this env var.

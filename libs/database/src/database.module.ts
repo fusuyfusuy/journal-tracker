@@ -5,7 +5,6 @@ import { AppConfig } from '@journal/shared';
 import { Article } from './entities/article.entity';
 import { Journal } from './entities/journal.entity';
 import { Subscriber } from './entities/subscriber.entity';
-import { InitialSchema1776247402498 } from './migrations/1776247402498-InitialSchema';
 
 @Module({
   imports: [
@@ -19,8 +18,8 @@ import { InitialSchema1776247402498 } from './migrations/1776247402498-InitialSc
           database: app.dbPath,
           entities: [Journal, Article, Subscriber],
           synchronize: app.dbSynchronize,
-          migrationsRun: true,
-          migrations: [InitialSchema1776247402498],
+          migrationsRun: !app.dbSynchronize,
+          migrations: [__dirname + '/migrations/*{.ts,.js}'],
         };
       },
     }),
