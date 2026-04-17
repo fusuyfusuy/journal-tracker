@@ -9,6 +9,19 @@ Bearer token for the Resend REST API. Startup aborts if unset or empty — this 
 
 Use a dummy value (`RESEND_API_KEY=unused`) for webhook-only deployments.
 
+## Authentication
+
+### `API_KEYS`
+Comma-separated list of shared-secret API keys for machine-to-machine access. Each request to the REST API must supply one of these values in the `X-API-Key` header.
+
+- Format: `API_KEYS=key1,key2,key3` (values are trimmed; empty entries ignored)
+- If the resulting list is empty, all non-`@Public()` routes will reject requests with 401.
+
+Example:
+```bash
+API_KEYS=sk-my-secret-key-1,sk-my-secret-key-2
+```
+
 ## Optional
 
 ### `CHECK_INTERVAL_MS`

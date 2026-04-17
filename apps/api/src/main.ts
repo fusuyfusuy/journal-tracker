@@ -12,9 +12,16 @@ async function bootstrap(): Promise<void> {
 
   const config = app.get(ConfigService);
   const cfg = config.getOrThrow<AppConfig>('app');
+  const logger = app.get(StructuredLogger);
+
+  if (cfg.apiKeys.length === 0) {
+    logger.warn('api.no_api_keys', {
+      message: 'API_KEYS is empty — all non-@Public() requests will be rejected until API keys are configured',
+    });
+  }
 
   await app.listen(cfg.api.port);
-  app.get(StructuredLogger).info('api.listening', { port: cfg.api.port });
+  logger.info('api.listening', { port: cfg.api.port });
 }
 
 bootstrap().catch((err) => {
