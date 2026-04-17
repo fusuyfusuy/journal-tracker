@@ -13,8 +13,7 @@ services:
   worker:
     build:
       context: .
-      args:
-        APP: worker
+      target: worker
     restart: unless-stopped
     depends_on:
       redis:
@@ -30,8 +29,7 @@ services:
   api:
     build:
       context: .
-      args:
-        APP: api
+      target: api
     restart: unless-stopped
     depends_on:
       redis:
