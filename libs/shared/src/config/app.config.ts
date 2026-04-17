@@ -3,6 +3,7 @@ import { registerAs } from '@nestjs/config';
 export interface AppConfig {
   checkIntervalMs: number;
   dbPath: string;
+  dbSynchronize: boolean;
   userAgent: string;
   redis: { host: string; port: number; password?: string };
   resend: { apiKey: string; from: string };
@@ -28,9 +29,15 @@ export const appConfig = registerAs('app', (): AppConfig => {
     checkIntervalMs = Math.max(parsed, MIN_CHECK_INTERVAL_MS);
   }
 
+  const rawSynchronize = process.env.DB_SYNCHRONIZE?.trim().toLowerCase();
+  if (rawSynchronize !== undefined && rawSynchronize !== 'true' && rawSynchronize !== 'false') {
+    throw new Error(`DB_SYNCHRONIZE must be "true" or "false", got "${process.env.DB_SYNCHRONIZE}"`);
+  }
+
   return {
     checkIntervalMs,
     dbPath: process.env.DB_PATH ?? './data/journal-tracker.db',
+    dbSynchronize: rawSynchronize === 'true',
     userAgent: 'academic-journal-tracker/2.0',
     redis: {
       host: process.env.REDIS_HOST ?? 'localhost',

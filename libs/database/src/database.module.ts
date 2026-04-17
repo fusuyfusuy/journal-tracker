@@ -17,7 +17,9 @@ import { Subscriber } from './entities/subscriber.entity';
           type: 'better-sqlite3',
           database: app.dbPath,
           entities: [Journal, Article, Subscriber],
-          synchronize: true,
+          synchronize: app.dbSynchronize,
+          migrationsRun: !app.dbSynchronize,
+          migrations: [__dirname + '/migrations/*{.ts,.js}'],
         };
       },
     }),

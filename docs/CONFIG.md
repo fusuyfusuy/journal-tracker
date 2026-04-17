@@ -22,6 +22,12 @@ SQLite file path for TypeORM.
 - Default: `./data/journal-tracker.db`
 - Create the parent directory before first run, or TypeORM will error.
 
+### `DB_SYNCHRONIZE`
+
+When `true`, TypeORM will auto-sync the schema on boot (mirrors the old `synchronize: true` behaviour). **Never enable in production.**
+- Default: `false`
+- In-memory test databases set `synchronize: true` directly and are unaffected by this env var.
+
 ### `REDIS_HOST` / `REDIS_PORT` / `REDIS_PASSWORD`
 BullMQ connection.
 - Defaults: `localhost:6379`, no password.
@@ -43,10 +49,21 @@ HTTP port for `apps/api`.
 
 Structured JSON to stdout, one record per line (`libs/shared/src/logging/logger.service.ts`). No level filter — pipe to `jq`/`vector`/`promtail` and filter downstream.
 
-## TypeORM
+## TypeORM / Migrations
 
-`synchronize: true` in `DatabaseModule` — the schema is auto-created on boot. Fine for dev and integration tests; before production, generate migrations and set `synchronize: false`:
+`migrationsRun: true` is always set — pending migrations are applied on every boot. `synchronize` is driven by `DB_SYNCHRONIZE` (default `false`).
+
+### Migration workflow
 
 ```bash
-bunx typeorm migration:generate -d <data-source-file> <MigrationName>
+# Generate a new migration after changing entities (append a name):
+bun run migration:generate libs/database/src/migrations/AddFooColumn
+
+# Apply pending migrations manually (also runs automatically on boot):
+bun run migration:run
+
+# Revert the last applied migration:
+bun run migration:revert
 ```
+
+The CLI DataSource file is `libs/database/src/data-source.ts`. It reads `DB_PATH` from the environment, so set that before running CLI commands against a non-default database file.
