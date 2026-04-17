@@ -109,8 +109,14 @@ describe('NotifyProcessor', () => {
       error: { message: 'Internal Server Error', status: 500 },
     });
 
-    await expect(processor.process(makeJob(makeJobData()))).rejects.toThrow(Error);
-    await expect(processor.process(makeJob(makeJobData()))).rejects.not.toThrow(UnrecoverableError);
+    let thrownError: unknown;
+    try {
+      await processor.process(makeJob(makeJobData()));
+    } catch (error) {
+      thrownError = error;
+    }
+    expect(thrownError).toBeInstanceOf(Error);
+    expect(thrownError).not.toBeInstanceOf(UnrecoverableError);
   });
 
   it('unrecoverable path: throws UnrecoverableError on 4xx error', async () => {

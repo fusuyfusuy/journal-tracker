@@ -8,13 +8,15 @@ import {
   CycleSummary,
   FetchResult,
   JournalResult,
+  NOTIFY_JOB,
+  NOTIFY_JOB_OPTS,
+  NOTIFY_QUEUE,
   NormalizedArticle,
   StructuredLogger,
 } from '@journal/shared';
 import { Queue } from 'bullmq';
 import { Repository } from 'typeorm';
 import { FetchersService } from '../fetchers/fetchers.service';
-import { NOTIFY_JOB, NOTIFY_JOB_OPTS, NOTIFY_QUEUE } from './queue.constants';
 
 @Injectable()
 export class CycleService {
@@ -133,11 +135,19 @@ export class CycleService {
     }
 
     for (const subscriber of subscribers) {
-      await this.notifyQueue.add(
-        NOTIFY_JOB,
-        { article: { ...saved, published_at: saved.published_at.toISOString(), created_at: saved.created_at.toISOString() }, subscriber: { ...subscriber, created_at: subscriber.created_at.toISOString() } },
-        NOTIFY_JOB_OPTS,
-      );
+      try {
+        await this.notifyQueue.add(
+          NOTIFY_JOB,
+          { article: { ...saved, published_at: saved.published_at.toISOString(), created_at: saved.created_at.toISOString() }, subscriber: { ...subscriber, created_at: subscriber.created_at.toISOString() } },
+          NOTIFY_JOB_OPTS,
+        );
+      } catch (e) {
+        this.log.error('notify.enqueue.error', {
+          article_id: saved.id,
+          subscriber_id: subscriber.id,
+          message: (e as Error).message,
+        });
+      }
     }
 
     return 'new';

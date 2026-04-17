@@ -1,10 +1,9 @@
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
-import { StructuredLogger } from '@journal/shared';
+import { CYCLE_JOB, CYCLE_QUEUE, StructuredLogger } from '@journal/shared';
 import { CycleService } from './cycle.service';
 
-export const CYCLE_QUEUE = 'cycle';
-export const CYCLE_JOB = 'run-cycle';
+export { CYCLE_JOB, CYCLE_QUEUE };
 
 @Processor(CYCLE_QUEUE)
 export class CycleProcessor extends WorkerHost {

@@ -1,9 +1,8 @@
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job, UnrecoverableError } from 'bullmq';
 import { Article, Subscriber } from '@journal/database';
-import { AppConfig, NotificationEvent, StructuredLogger } from '@journal/shared';
+import { AppConfig, NOTIFY_QUEUE, NotificationEvent, StructuredLogger } from '@journal/shared';
 import { ConfigService } from '@nestjs/config';
-import { NOTIFY_QUEUE } from '../cycle/queue.constants';
 import { NotifiersService } from './notifiers.service';
 
 export interface NotifyJobData {

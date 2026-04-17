@@ -34,6 +34,17 @@ BullMQ connection.
 HTTP port for `apps/api`.
 - Default: `3000`.
 
+## Queue retry configuration
+
+Hard-coded per queue (see `libs/shared/src/types/queue.constants.ts`):
+
+| Queue | Attempts | Backoff | Type |
+|---|---|---|---|
+| `cycle` | 3 | 30 s exponential | Per-cycle-run |
+| `notify` | 5 | 10 s exponential | Per-notification delivery |
+
+4xx HTTP errors from notifiers throw `UnrecoverableError` and are not retried.
+
 ## Timeouts (source-level, not env)
 
 - Fetch: 30 s — `AbortSignal.timeout(30_000)` in each `Fetcher.fetch()`.

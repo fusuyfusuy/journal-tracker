@@ -2,9 +2,8 @@ import { Injectable, OnApplicationBootstrap } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { ConfigService } from '@nestjs/config';
 import { Queue } from 'bullmq';
-import { AppConfig, StructuredLogger } from '@journal/shared';
+import { AppConfig, CYCLE_JOB_OPTS, StructuredLogger } from '@journal/shared';
 import { CYCLE_JOB, CYCLE_QUEUE } from './cycle.processor';
-import { CYCLE_JOB_OPTS } from './queue.constants';
 
 /**
  * Registers a repeatable BullMQ job on worker boot.

@@ -3,11 +3,10 @@ import { getQueueToken } from '@nestjs/bullmq';
 import { Test, TestingModule } from '@nestjs/testing';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Article, Journal, Subscriber } from '@journal/database';
-import { AppConfig, LoggingModule, StructuredLogger } from '@journal/shared';
+import { AppConfig, LoggingModule, NOTIFY_QUEUE, StructuredLogger } from '@journal/shared';
 import { Repository } from 'typeorm';
 import { FetchersService } from '../fetchers/fetchers.service';
 import { CycleService } from './cycle.service';
-import { NOTIFY_QUEUE } from './queue.constants';
 
 const testConfig = (): { app: AppConfig } => ({
   app: {

@@ -1,5 +1,8 @@
 import type { JobsOptions } from 'bullmq';
 
+export const CYCLE_QUEUE = 'cycle';
+export const CYCLE_JOB = 'run-cycle';
+
 export const CYCLE_JOB_OPTS: JobsOptions = {
   attempts: 3,
   backoff: { type: 'exponential', delay: 30_000 },
